@@ -32,14 +32,17 @@ function - 5
 #include <stdlib.h>
 
 #define nameLen 50
-#define dateLen 11
+#define dateLen 30
 #define procedureLen 20
+#define APPOINTMENTS "appointments.txt"
+char PROCEDURE_MAP[5][20] = {"", "Cleaning", "Tooth Filling", "Oral Examination", "Tooth Extraction"};
 
 // TODO: procedure map
 // TODO: payment type map
 
 struct Appointment
 {
+    double uuid;
     double clientId;
     char firstName[nameLen];
     char lastName[nameLen];
@@ -49,8 +52,45 @@ struct Appointment
     char cardNumber[16];
 };
 
-int addApointment(double date, double client_id, char client_fname[50], char client_lname[50], char procedure[50])
+int addApointment()
 {
+
+    // START UUID GENERATION | libuuid isnt working for me - B.S
+    srand(time(NULL));
+    int uuid = rand();
+
+    FILE *writePtr;
+
+    if ((writePtr = fopen(APPOINTMENTS, "ab+")) == NULL)
+    {
+        printf("Error opening appointments file.");
+    }
+
+    struct Appointment appt;
+    int procedureType;
+
+    printf("Enter the client's ID: ");
+    scanf("%ld", &appt.clientId);
+
+    printf("Enter the date for the appointment\nDD/MM/YYYY: ");
+    scanf("%s", &appt.apptDate);
+
+    printf("Enter the first and last name of the client\n> ");
+    scanf("%s %s", appt.firstName, appt.lastName);
+
+    printf("Select the procedure the client has selected:\n");
+    printf("1. Cleaning\n");
+    printf("2. Tooth filling\n");
+    printf("3. Oral examination\n");
+    printf("4. Tooth extraction\n");
+    printf("> ");
+    scanf("%d", &procedureType);
+    strcpy(appt.procedureType, PROCEDURE_MAP[procedureType]);
+
+    fwrite(&appt, sizeof(struct Appointment), 1, writePtr);
+    printf("Saved!, Unique ID generated = ");
+
+    fclose(writePtr);
 }
 
 int editAppointment(double unique_id)
@@ -98,6 +138,15 @@ int menu()
 
 int main()
 {
-    menu();
+    int menuType = menu();
+    switch (menuType)
+    {
+    case 1:
+        addApointment();
+        break;
+
+    default:
+        break;
+    }
     // this does the switching
 }
