@@ -31,6 +31,8 @@
    - All dates are considered valid if they match DD/MM/YYYY
    - Time is merely a mortal construct anyway
 
+4. **Code base may be restructured at any moment please consult 😭**
+
 ## 📜 Usage Scrolls
 
 1. Compile the ancient texts:
