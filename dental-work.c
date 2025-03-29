@@ -27,9 +27,11 @@ function - 5
 
 */
 
+// Libraries to link
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define nameLen 50
 #define dateLen 30
@@ -40,7 +42,7 @@ char PROCEDURE_MAP[5][20] = {"", "Cleaning", "Tooth Filling", "Oral Examination"
 // TODO: procedure map
 // TODO: payment type map
 
-struct Appointment
+typedef struct Appointment
 {
     double uuid;
     double clientId;
@@ -52,7 +54,15 @@ struct Appointment
     char cardNumber[16];
 };
 
-int addApointment()
+// function protos
+int addAppointment();
+int editAppointment();
+int deleteAppointment(double unique_id);
+void displayAppointments();
+struct Appointment searchRecords(int robots);
+int menu();
+
+int addAppointment()
 {
 
     // START UUID GENERATION | libuuid isnt working for me - B.S
@@ -68,6 +78,8 @@ int addApointment()
 
     struct Appointment appt;
     int procedureType;
+
+    appt.uuid = uuid;
 
     printf("Enter the client's ID: ");
     scanf("%ld", &appt.clientId);
@@ -88,14 +100,18 @@ int addApointment()
     strcpy(appt.procedureType, PROCEDURE_MAP[procedureType]);
 
     fwrite(&appt, sizeof(struct Appointment), 1, writePtr);
-    printf("Saved!, Unique ID generated = ");
+    printf("Saved!, Unique ID generated = %d", uuid);
 
     fclose(writePtr);
 }
 
-int editAppointment(double unique_id)
+int editAppointment()
 {
-    // prompt user for the change needed
+    int uuid;
+    printf("Enter the uuid for the appointment created: ");
+    scanf("%d", &uuid);
+    printf("Searching databank for appointment #%d\n", uuid);
+    searchRecords(uuid);
 }
 
 int deleteAppointment(double unique_id)
@@ -110,10 +126,36 @@ void displayAppointments()
     // print all of them
 }
 
-int searchRecords()
+struct Appointment searchRecords(int robots)
 {
+    struct Appointment appt;
+
     // prompt the user which of the unique things they have
     // eg, name, id, etc
+    FILE *fptr;
+    if ((fptr = fopen(APPOINTMENTS, "rb+")) == NULL)
+    {
+        printf("Error opening appointments master file.");
+        return appt; // empty function returned on error.
+    }
+
+    if (robots != 0)
+    {
+        printf("[Search Records]: Initialized with robots = True\n");
+        printf("[Search Records]: Searching databank with key = uuid (%d)\n", robots);
+
+        while (fread(&appt, sizeof(struct Appointment), 1, fptr))
+        {
+            if (appt.uuid == robots)
+            {
+                fclose(fptr);
+                return appt;
+            }
+        }
+    }
+
+    fclose(fptr);
+    printf("[Search Records]: No record found.\n");
 }
 
 int menu()
@@ -141,8 +183,28 @@ int main()
     int menuType = menu();
     switch (menuType)
     {
+
+    case -1:
+        return 0;
+
     case 1:
-        addApointment();
+        addAppointment();
+        break;
+
+    case 2:
+        editAppointment();
+        break;
+
+    case 3:
+        // deleteAppointment();
+        break;
+
+    case 4:
+        searchRecords(0); // robots is disabled
+        break;
+
+    case 5:
+        displayAppointments();
         break;
 
     default:
