@@ -39,6 +39,7 @@ function - 5
 #define APPOINTMENTS "appointments.txt"
 char PROCEDURE_MAP[5][20] = {"", "Cleaning", "Tooth Filling", "Oral Examination", "Tooth Extraction"};
 char PAYMENT_MAP[4][20] = {"", "Cash", "Credit Card", "Debit Card"};
+
 // TODO: procedure map DONE
 // TODO: payment type map PENDING
 // UUID IS IMMUTABLE!
@@ -125,8 +126,6 @@ int editAppointment()
     printf("Enter the uuid for the appointment created: ");
     scanf("%ld", &uuid);
 
-    // prompt the user which of the unique things they have
-    // eg, name, id, etc
     FILE *fptr;
     if ((fptr = fopen(APPOINTMENTS, "rb+")) == NULL)
     {
@@ -150,33 +149,181 @@ int editAppointment()
     printf("4. Appointment Date     | %s\n", appt.apptDate);
     printf("5. Procedure Type       | %s\n", appt.procedureType);
     printf("6. Payment Type         | %s\n", appt.paymentType);
+
     if (strcmp(appt.paymentType, "Cash") != 0)
     {
         printf("7. Card number          | %lf\n", appt.cardNumber);
     }
     printf("> ");
     scanf("%d", &editOp);
+
     switch (editOp)
     {
     case 1:
-        printf("Enter the edited client ID");
+        printf("Enter the edited client ID: ");
+        scanf("%ld", &appt.clientId);
         break;
-
+    case 2:
+        printf("Enter the edited first name: ");
+        scanf("%s", appt.firstName);
+        break;
+    case 3:
+        printf("Enter the edited last name: ");
+        scanf("%s", appt.lastName);
+        break;
+    case 4:
+        printf("Enter the edited appointment date (DD/MM/YYYY): ");
+        scanf("%s", appt.apptDate);
+        break;
+    case 5:
+        printf("Select the edited procedure type:\n");
+        printf("1. Cleaning\n2. Tooth Filling\n3. Oral Examination\n4. Tooth Extraction\n> ");
+        int procedureType;
+        scanf("%d", &procedureType);
+        strcpy(appt.procedureType, PROCEDURE_MAP[procedureType]);
+        break;
+    case 6:
+        printf("Select the edited payment type:\n");
+        printf("1. Cash\n2. Credit Card\n3. Debit Card\n> ");
+        int paymentMethod;
+        scanf("%d", &paymentMethod);
+        strcpy(appt.paymentType, PAYMENT_MAP[paymentMethod]);
+        if (paymentMethod != 1)
+        {
+            printf("Enter the edited card number: ");
+            scanf("%s", appt.cardNumber);
+        }
+        break;
+    case 7:
+        if (strcmp(appt.paymentType, "Cash") != 0)
+        {
+            printf("Enter the edited card number: ");
+            scanf("%s", appt.cardNumber);
+        }
+        else
+        {
+            printf("Card number is not applicable for cash payments.\n");
+        }
+        break;
     default:
+        printf("Invalid option selected.\n");
         break;
+    }
+
+    FILE *ePtr;
+
+    if ((ePtr = fopen(APPOINTMENTS, "rb+")) == NULL)
+    {
+        printf("Error opening file");
+        return -1;
+    }
+    else
+    {
+        fseek(ePtr, -sizeof(struct Appointment), SEEK_CUR);
+        fwrite(&appt, sizeof(struct Appointment), 1, ePtr);
+        printf("Appointment edited successfully!");
     }
 }
 
-int deleteAppointment(double unique_id)
+// makes a copy of the old appointments file, while copying it ignores the uuid to delete, removing it
+int deleteAppointment()
 {
-    // return a confirmation prompt
+    double unique_id;
+
+    printf("Enter the UUID of the appointment you'd like to delete: ");
+    scanf("%ld", &unique_id);
+    FILE *readPtr, *writePtr;
+    struct Appointment appt;
+    int found = 0;
+
+    // Open the original file in read mode
+    if ((readPtr = fopen(APPOINTMENTS, "rb")) == NULL)
+    {
+        printf("Error opening appointments file.\n");
+        return -1;
+    }
+
+    // Open a temporary file in write mode
+    if ((writePtr = fopen("temp_appointments.txt", "wb")) == NULL)
+    {
+        printf("Error creating temporary file.\n");
+        fclose(readPtr);
+        return -1;
+    }
+
+    // Read each record and copy to the temporary file if it doesn't match the unique_id
+    while (fread(&appt, sizeof(struct Appointment), 1, readPtr))
+    {
+        if (appt.uuid == unique_id)
+        {
+            found = 1; // Mark that the record to delete was found
+            continue;  // Skip writing this record to the temporary file
+        }
+        fwrite(&appt, sizeof(struct Appointment), 1, writePtr);
+    }
+
+    fclose(readPtr);
+    fclose(writePtr);
+
+    // Replace the original file with the temporary file
+    remove(APPOINTMENTS);
+    rename("temp_appointments.txt", APPOINTMENTS);
+
+    if (found)
+    {
+        printf("Appointment with UUID %lf deleted successfully.\n", unique_id);
+    }
+    else
+    {
+        printf("Appointment with UUID %lf not found.\n", unique_id);
+    }
+
+    return found ? 0 : -1;
 }
 
 // for menu design use system from stdlib.h to clear the terminal
-
 void displayAppointments()
 {
-    // print all of them
+    FILE *readPtr;
+    struct Appointment appt;
+    int recordCount = 0;
+
+    // Open the file in read mode
+    if ((readPtr = fopen(APPOINTMENTS, "rb")) == NULL)
+    {
+        printf("Error opening appointments file or no appointments found.\n");
+        return;
+    }
+
+    printf("Displaying all appointments:\n");
+    printf("============================================================\n");
+
+    // Read and display each record
+    while (fread(&appt, sizeof(struct Appointment), 1, readPtr))
+    {
+        recordCount++;
+        printf("Record #%d:\n", recordCount);
+        printf("UUID: %ld\n", appt.uuid);
+        printf("Client ID: %ld\n", (long)appt.clientId);
+        printf("Name: %s %s\n", appt.firstName, appt.lastName);
+        printf("Appointment Date: %s\n", appt.apptDate);
+        printf("Procedure: %s\n", appt.procedureType);
+        printf("Payment Type: %s\n", appt.paymentType);
+        if (strcmp(appt.paymentType, "Cash") != 0)
+        {
+            printf("Card Number: %s\n", appt.cardNumber);
+        }
+        printf("------------------------------------------------------------\n");
+    }
+
+    // Check if no records were found
+    if (recordCount == 0)
+    {
+        printf("No appointments found.\n");
+    }
+
+    // Close the file
+    fclose(readPtr);
 }
 
 struct Appointment searchRecords(int robots)
@@ -242,12 +389,11 @@ int main()
 
     case 3:
         system("cls");
-        // deleteAppointment();
+        deleteAppointment();
         break;
 
     case 4:
         system("cls");
-
         searchRecords(0); // robots is disabled
         break;
 
@@ -260,4 +406,5 @@ int main()
         break;
     }
     // this does the switching
+    main();
 }
