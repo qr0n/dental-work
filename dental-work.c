@@ -59,9 +59,9 @@ typedef struct Appointment
 // function protos
 int addAppointment();
 int editAppointment();
-int deleteAppointment(double unique_id);
+int deleteAppointment();
 void displayAppointments();
-struct Appointment searchRecords(int robots);
+void searchRecords();
 int menu();
 
 int addAppointment()
@@ -326,11 +326,7 @@ void displayAppointments()
     fclose(readPtr);
 }
 
-struct Appointment searchRecords(int robots)
-{
-}
-
-void searchRecordsInterface()
+void searchRecords()
 {
     int searchType;
     printf("Enter how you would like to search");
