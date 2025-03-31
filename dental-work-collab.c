@@ -53,7 +53,7 @@ typedef struct Appointment
     char apptDate[dateLen];
     char procedureType[procedureLen];
     char paymentType[20];
-    char cardNumber[16];
+    char cardNumber[20]; // Increased size and changed to char array
 } Appointment;
 
 // function protos
@@ -61,7 +61,7 @@ int addAppointment();
 int editAppointment();
 int deleteAppointment();
 void displayAppointments();
-void searchRecords();
+void searchRecordsInterface();
 int menu();
 
 int addAppointment()
@@ -87,10 +87,10 @@ int addAppointment()
     scanf("%ld", &appt.clientId);
 
     printf("Enter the date for the appointment\nDD/MM/YYYY: ");
-    scanf("%s", &appt.apptDate);
+    scanf("%s", appt.apptDate); // Remove &
 
     printf("Enter the first and last name of the client\n> ");
-    scanf("%s %s", appt.firstName, appt.lastName);
+    scanf("%s %s", appt.firstName, appt.lastName); // Remove &
 
     printf("Select the procedure the client has selected:\n");
     printf("1. Cleaning\n");
@@ -106,9 +106,8 @@ int addAppointment()
     strcpy(appt.paymentType, PAYMENT_MAP[paymentMethod]);
     if (paymentMethod != 1)
     {
-        long long cardNumber;
         printf("Enter card number: ");
-        scanf("%ld", &appt.cardNumber);
+        scanf("%s", appt.cardNumber); // Changed to %s
     }
 
     fwrite(&appt, sizeof(struct Appointment), 1, writePtr);
@@ -324,12 +323,21 @@ void displayAppointments()
     fclose(readPtr);
 }
 
-void searchRecordsInterface(FILE *fptr)
+void searchRecordsInterface()
 {
+    FILE *readPtr;
+    struct Appointment appt;
+    int recordCount = 0;
+
+    // Open the file in read mode
+    if ((readPtr = fopen(APPOINTMENTS, "rb")) == NULL)
+    {
+        printf("Error opening appointments file or no appointments found.\n");
+        return;
+    }
     int searchType;
     char firstName[15], lastName[15], date[15];
     double idnum;
-    struct Appointment appt;
 
     printf("Enter how you would like to search\n");
     printf("1. Name (First and Last required)\n2. Date (DD/MM/YYYY)\n3. Client ID\n> ");
@@ -338,22 +346,34 @@ void searchRecordsInterface(FILE *fptr)
     switch (searchType)
     {
     case 1:
-        printf("Enter the first and last name\n");
-        scanf("%s %s", firstName, lastName);
+        printf("Enter your First name\n> ");
+        scanf("%s", firstName); // Remove &
+        printf("Enter your Last name\n> ");
+        scanf("%s", lastName); // Remove & and add newline
 
-        for (;;)
+        int found = 0;
+        while (fread(&appt, sizeof(struct Appointment), 1, readPtr))
         {
-            if (fread(&appt, sizeof(struct Appointment), 1, fptr) != 1)
+            if (strcmp(firstName, appt.firstName) == 0 && strcmp(lastName, appt.lastName) == 0)
             {
-                if (feof(fptr))
+                found = 1;
+                printf("\nAppointment found:\n");
+                printf("UUID: %ld\n", appt.uuid);
+                printf("Client ID: %ld\n", (long)appt.clientId);
+                printf("Name: %s %s\n", appt.firstName, appt.lastName);
+                printf("Appointment Date: %s\n", appt.apptDate);
+                printf("Procedure: %s\n", appt.procedureType);
+                printf("Payment Type: %s\n", appt.paymentType);
+                if (strcmp(appt.paymentType, "Cash") != 0)
                 {
-                    break;
+                    printf("Card Number: %s\n", appt.cardNumber);
                 }
-                if (strcmp(appt.firstName, firstName) == 0 && strcmp(appt.lastName, lastName) == 0)
-                {
-                    printf(" %-16s %-11s %-17s %-16s %-16s %.2f %-16s %-16ld\n", appt.firstName, appt.lastName, appt.cardNumber, appt.apptDate, appt.paymentType, appt.clientId, appt.procedureType, appt.uuid);
-                }
+                printf("------------------------------------------------------------\n");
             }
+        }
+        if (!found)
+        {
+            printf("\nNo appointments found for %s %s\n", firstName, lastName);
         }
         break;
 
@@ -361,8 +381,8 @@ void searchRecordsInterface(FILE *fptr)
         printf("Enter the date of appointment\n");
         scanf("%s", date);
 
-        rewind(fptr);
-        while (fread(&appt, sizeof(struct Appointment), 1, fptr) == 1)
+        rewind(readPtr);
+        while (fread(&appt, sizeof(struct Appointment), 1, readPtr) == 1)
         {
             if (strcmp(appt.apptDate, date) == 0)
             {
@@ -375,8 +395,8 @@ void searchRecordsInterface(FILE *fptr)
         printf("Enter ID number\n");
         scanf("%lf", &idnum);
 
-        rewind(fptr);
-        while (fread(&appt, sizeof(struct Appointment), 1, fptr) == 1)
+        rewind(readPtr);
+        while (fread(&appt, sizeof(struct Appointment), 1, readPtr) == 1)
         {
             if (appt.clientId == idnum)
             {
@@ -415,41 +435,41 @@ int menu()
 
 int main()
 {
-    int menuType = menu();
-    switch (menuType)
+    while (1)
     {
-
-    case -1:
-        return 0;
-
-    case 1:
         system("cls");
-        addAppointment();
-        break;
+        int menuType = menu();
 
-    case 2:
+        if (menuType == -1)
+        {
+            printf("\nGoodbye!\n");
+            return 0;
+        }
+
         system("cls");
-        editAppointment();
-        break;
-
-    case 3:
-        system("cls");
-        deleteAppointment();
-        break;
-
-    case 4:
-        system("cls");
-        searchRecords();
-        break;
-
-    case 5:
-        system("cls");
-        displayAppointments();
-        break;
-
-    default:
-        break;
+        switch (menuType)
+        {
+        case 1:
+            addAppointment();
+            break;
+        case 2:
+            editAppointment();
+            break;
+        case 3:
+            deleteAppointment();
+            break;
+        case 4:
+            searchRecordsInterface();
+            break;
+        case 5:
+            displayAppointments();
+            break;
+        default:
+            printf("Invalid option selected!\n");
+            break;
+        }
+        printf("\nPress Enter to continue...");
+        getchar();
+        getchar();
     }
-    // this does the switching
-    main();
 }
